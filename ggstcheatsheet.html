@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap CSS -->
+  <link
+  href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+  rel="stylesheet"
+  integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+  crossorigin="anonymous">
+
+  <!-- importmap -->
+  <script type="importmap">
+    {
+      "imports": {
+        "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js"
+      }
+    }
+  </script>
+
+  <title>GGST cheatsheet</title>
+</head>
+<body>
+  <div class="container" id="app">
+    <table class="table table-striped" style="font-size: 0.8rem;">
+      <thead>
+        <tr>
+          <th scope="col" v-for="lifePercentage in guts.liferanges">{{lifePercentage}}%</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="line in characters.list.length">
+          <td v-for="lr in guts.liferanges.length" :style="{ color: characters.name(modifiersTable[lr-1][line-1].name).color}">
+            <div>{{ modifiersTable[lr-1][line-1].name }}</div>
+            <div>{{ modifiersTable[lr-1][line-1].modifier.toFixed(4) }}</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script type="module">
+    import { createApp } from 'vue'
+
+    class Characters {
+      constructor(list) {
+        this.list = list
+      }
+
+      get names() {
+        return this.list.map(char => char.name)
+      }
+
+      name(value) {
+        return this.list.find(char => char.name === value)
+      }
+    }
+
+    class Character {
+      constructor(name, defData, color) {
+        this.name = name
+        this.defData = defData
+        this.color = color
+      }
+    }
+
+    class DefData {
+      constructor(defense, guts) {
+        this.life = 420
+        this.defense = defense
+        this.guts = guts
+        this.defcoef = defense/256
+      }
+    }
+
+    class Guts {
+      liferanges = [100, 70, 60, 50, 40, 30, 20, 10]
+      table = {
+        0:{70:0.97, 60:0.92, 50:0.89, 40:0.84, 30:0.75, 20:0.66, 10:0.56},
+        1:{70:0.96, 60:0.91, 50:0.87, 40:0.82, 30:0.73, 20:0.63, 10:0.53},
+        2:{70:0.95, 60:0.90, 50:0.85, 40:0.80, 30:0.70, 20:0.60, 10:0.50},
+        3:{70:0.94, 60:0.89, 50:0.83, 40:0.78, 30:0.67, 20:0.57, 10:0.47},
+        4:{70:0.93, 60:0.88, 50:0.81, 40:0.76, 30:0.64, 20:0.53, 10:0.44},
+        5:{70:0.92, 60:0.87, 50:0.79, 40:0.74, 30:0.60, 20:0.50, 10:0.41},
+      }
+
+      gutsCoef(guts, lifePercentage) {
+        if (lifePercentage > 70) { return 1 }
+        else if (lifePercentage > 60) { return this.table[guts][70] }
+        else if (lifePercentage > 50) { return this.table[guts][60] }
+        else if (lifePercentage > 40) { return this.table[guts][50] }
+        else if (lifePercentage > 30) { return this.table[guts][40] }
+        else if (lifePercentage > 20) { return this.table[guts][30] }
+        else if (lifePercentage > 10) { return this.table[guts][20] }
+        else { return this.table[guts][10] }
+      }
+    }
+
+    var characters = new Characters ([
+      new Character("Bedman?", new DefData(246, 0), "#a6425f"),
+      new Character("Anji Mito", new DefData(272, 5), "#00aab6"),
+      new Character("Axl Low", new DefData(276, 1), "#625e60"),
+      new Character("Baiken", new DefData(286, 4), "#374f83"),
+      new Character("Bridget", new DefData(272, 0), "#789bb7"),
+      new Character("Chipp Zanuff", new DefData(324, 4), "#a49ea6"),
+      new Character("Faust", new DefData(260, 0), "#27475b"),
+      new Character("Giovanna", new DefData(264, 1), "#02d39c"),
+      new Character("Goldlewis Dickinson", new DefData(246, 3), "#c19a50"),
+      new Character("Happy Chaos", new DefData(266, 1), "#5b7d90"),
+      new Character("I-No", new DefData(272, 1), "#a54142"),
+      new Character("Jack-O", new DefData(286, 2), "#bf4e4e"),
+      new Character("Ky Kiske", new DefData(256, 2), "#438abc"),
+      new Character("Leo Whitefang", new DefData(256, 3), "#523d3c"),
+      new Character("May", new DefData(272, 4), "#ed9a50"),
+      new Character("Millia Rage", new DefData(304, 2), "#c66f35"),
+      new Character("Nagoriyuki", new DefData(248, 4), "#613050"),
+      new Character("Potemkin", new DefData(240, 3), "#626a4e"),
+      new Character("Ramlethal Valentine", new DefData(272, 1), "#00815c"),
+      new Character("Sin Kiske", new DefData(270, 2), "#374f83"),
+      new Character("Sol Badguy", new DefData(252, 2), "#a44f43"),
+      new Character("Testament", new DefData(268, 1), "#4e4e47"),
+      new Character("Zato-1", new DefData(276, 0), "#073842"),
+    ])
+
+    var guts = new Guts
+    var modifiersTable = guts.liferanges.map(lr => {
+      return characters.names.map(name => {
+        let gCoef = guts.gutsCoef(characters.name(name).defData.guts, lr)
+        let modifier = 1 * gCoef * characters.name(name).defData.defcoef
+        return {name: name, modifier: modifier}
+      }).sort((a, b) => a.modifier - b.modifier)
+    })
+
+    createApp({
+      data() {
+        return {
+          characters: characters,
+          guts: guts,
+          modifiersTable: modifiersTable
+        }
+      }
+    }).mount('#app')
+  </script>
+
+  <script 
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+  crossorigin="anonymous"></script>
+</body>
+</html>
