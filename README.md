@@ -10,3 +10,5 @@ Open the html file in your browser (you need internet connection to be able to r
 
 - Order table for all life ranges and all charaters for damage modifiers
 - Modifier variations for concerned character added to the main table (Bedman?, Giovanna, Nagoriyuki, Sin)
+- filters to select the characters to display
+- embedded pages information

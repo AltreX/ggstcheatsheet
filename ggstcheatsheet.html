@@ -25,6 +25,60 @@
 </head>
 <body>
   <div class="container" id="app">
+    <h2>GGST Cheatsheet</h2>
+
+    <p>This mini app shows currently all the damage modifier of all GGST characters for each range of life (necessary because of the guts variable)</p>
+    <p>How to read/use this table :</p>
+    <ul>
+      <li>Each columns represents the character damage modifiers for a spécific range of life. Example : column 100% represente the damage taken from 100% to 70% of life</li>
+      <li>In each columns the characters are sorted according to their modifier value, the tankyest character in first</li>
+      <li>Some characters have specific damage modifier according to in game conditions, the cells with a character name and a badge (named after the specific conditions) represents these values</li>
+      <li>In each cell you can find the following informations
+        <ul>
+          <li>the character name and its specific modifier if there is one</li>
+          <li>the decimal modifier value (between 0 and 1)</li>
+          <li>the damage impact for a 100 damage hit</li>
+          <li>the damage impact for a 200 damage hit</li>
+        </ul>
+      </li>
+      <li>You can also change the table content with the filters to do more specific character comparisons</li>
+    </ul>
+
+    <!-- character filter -->
+    <div class="btn btn-secondary m-2" data-bs-toggle="collapse" href="#collapseCharacterFilter" >
+      Table filters
+    </div>
+
+    <div class="collapse" id="collapseCharacterFilter">
+      <div class="card card-body">
+        <div class="btn-group m-1" role="group">
+          <button type="button" class="btn btn-outline-primary btn-sm" @click="checkAll">Check All</button>
+          <button type="button" class="btn btn-outline-primary btn-sm" @click="uncheckAll">Uncheck All</button>
+        </div>
+        <div class="btn-group m-1" role="group">
+          <button type="button" class="btn btn-outline-primary btn-sm" @click="checkAllCharacters">Check Characters</button>
+          <button type="button" class="btn btn-outline-primary btn-sm" @click="uncheckAllCharacters">Uncheck Characters</button>
+        </div>
+        <div class="btn-group m-1" role="group">
+          <button type="button" class="btn btn-outline-primary btn-sm" @click="checkAllVariations">Check Variations</button>
+          <button type="button" class="btn btn-outline-primary btn-sm" @click="uncheckAllVariations">Uncheck Variations</button>
+        </div>
+        <div v-for="name in characters.names">
+            <input class="form-check-input" type="checkbox" :value="name" :id="`input-id-${name}`" v-model="checkedNames">
+            <label class="form-check-label ps-1" :for="`input-id-${name}`">
+              {{ name }}
+            </label>
+          <div v-if="characters.name(name).hasDefVariations" v-for="variation in characters.name(name).defVariations">
+            <input class="form-check-input ms-4" type="checkbox" :value="variation.name" :id="`input-id-${variation.name}`" v-model="checkedVariations">
+            <label class="form-check-label ps-1" :for="`input-id-${variation.name}`">
+              {{ variation.name }}
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- damage modifier table -->
     <table class="table table-striped" style="font-size: 0.75rem;">
       <thead>
         <tr>
@@ -32,7 +86,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="line in characters.listLengthWithVar">
+        <tr v-for="line in modifiersTableCharacterListLength">
           <td v-for="lr in guts.liferanges.length" :style="{ color: characters.name(modifiersTable[lr-1][line-1].name).color}">
             <div class="text-center">
               <span class="fw-bold me-1">{{ modifiersTable[lr-1][line-1].name }}</span>
@@ -58,9 +112,16 @@
       get names() {
         return this.list.map(char => char.name)
       }
-      get variations() {
-        let variations = this.list.filter(char => char.defVariations.length )
-        return variations.map(char => char.name)
+      get variations(){
+        let variations = []
+        this.list.forEach(char => {
+          if (char.hasDefVariations) {
+            char.defVariations.forEach(variation => {
+              variations.push(variation.name)
+            })
+          }
+        })
+        return variations
       }
 
       get listLength() {
@@ -130,7 +191,7 @@
       new Character("Bedman?", new DefData(246, 0), "#a6425f",
         [
           // 10% less damages during install
-          {name:"install", modifier: 0.90}
+          {name:"Call 13C", modifier: 0.90}
         ]),
       new Character("Anji Mito", new DefData(272, 5), "#00aab6"),
       new Character("Axl Low", new DefData(276, 1), "#625e60"),
@@ -176,28 +237,62 @@
 
     var guts = new Guts
 
-    var modifiersTable = guts.liferanges.map(lr => {
-      let modifiersList = []
-      characters.names.forEach(name => {
-        let char = characters.name(name)
-        let gCoef = guts.gutsCoef(char.defData.guts, lr)
-        let modifier = 1 * gCoef * char.defData.defcoef
-        modifiersList.push({name: name, modifier: modifier})
-        if (char.hasDefVariations) {
-          char.defVariations.forEach( variation => {
-            modifiersList.push({name: name, modifier: modifier * variation.modifier, varName: variation.name})
-          })
-        }
-      })
-      return modifiersList.sort((a, b) => a.modifier - b.modifier)
-    })
-
     createApp({
       data() {
         return {
           characters: characters,
           guts: guts,
-          modifiersTable: modifiersTable
+          // modifiersTable: modifiersTable,
+          checkedNames: characters.names,
+          checkedVariations : characters.variations
+        }
+      },
+      computed: {
+        modifiersTable() {
+          return this.guts.liferanges.map(lr => {
+            let modifiersList = []
+            this.characters.names.forEach(name => {
+              let char = characters.name(name)
+              let gCoef = this.guts.gutsCoef(char.defData.guts, lr)
+              let modifier = 1 * gCoef * char.defData.defcoef
+              if (this.checkedNames.includes(name)) {
+                modifiersList.push({name: name, modifier: modifier})
+              }
+              if (char.hasDefVariations) {
+                char.defVariations.forEach(variation => {
+                  if (this.checkedVariations.includes(variation.name)) {
+                    modifiersList.push({name: name, modifier: modifier * variation.modifier, varName: variation.name})
+                  }
+                })
+              }
+            })
+            return modifiersList.sort((a, b) => a.modifier - b.modifier)
+          })
+        },
+        modifiersTableCharacterListLength () {
+          return this.checkedNames.length + this.checkedVariations.length
+        }
+      },
+      methods: {
+        checkAllCharacters () {
+          this.checkedNames = this.characters.names
+        },
+        checkAllVariations () {
+          this.checkedVariations = this.characters.variations
+        },
+        checkAll () {
+          this.checkAllCharacters()
+          this.checkAllVariations()
+        },
+        uncheckAllCharacters () {
+          this.checkedNames = []
+        },
+        uncheckAllVariations () {
+          this.checkedVariations = []
+        },
+        uncheckAll () {
+          this.uncheckAllCharacters()
+          this.uncheckAllVariations()
         }
       }
     }).mount('#app')
