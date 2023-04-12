@@ -16,7 +16,7 @@
   <script type="importmap">
     {
       "imports": {
-        "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js"
+        "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
       }
     }
   </script>
@@ -25,17 +25,22 @@
 </head>
 <body>
   <div class="container" id="app">
-    <table class="table table-striped" style="font-size: 0.8rem;">
+    <table class="table table-striped" style="font-size: 0.75rem;">
       <thead>
         <tr>
           <th scope="col" v-for="lifePercentage in guts.liferanges">{{lifePercentage}}%</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="line in characters.list.length">
+        <tr v-for="line in characters.listLengthWithVar">
           <td v-for="lr in guts.liferanges.length" :style="{ color: characters.name(modifiersTable[lr-1][line-1].name).color}">
-            <div>{{ modifiersTable[lr-1][line-1].name }}</div>
-            <div>{{ modifiersTable[lr-1][line-1].modifier.toFixed(4) }}</div>
+            <div class="text-center">
+              <span class="fw-bold me-1">{{ modifiersTable[lr-1][line-1].name }}</span>
+              <div class="badge bg-secondary text-wrap rounded-pill">{{ modifiersTable[lr-1][line-1].varName }}</div>
+              <div>{{ modifiersTable[lr-1][line-1].modifier.toFixed(4) }}</div>
+              <div>100 damage hit : {{ (modifiersTable[lr-1][line-1].modifier * 100).toFixed(0) }}</div>
+              <div>200 damage hit : {{ (modifiersTable[lr-1][line-1].modifier * 200).toFixed(0) }}</div>
+            </div>
           </td>
         </tr>
       </tbody>
@@ -53,6 +58,23 @@
       get names() {
         return this.list.map(char => char.name)
       }
+      get variations() {
+        let variations = this.list.filter(char => char.defVariations.length )
+        return variations.map(char => char.name)
+      }
+
+      get listLength() {
+        return this.list.length
+      }
+      get listLengthWithVar() {
+        let length = this.listLength
+        this.list.forEach(char => {
+          if (char.hasDefVariations) {
+            length += char.defVariations.length
+          }
+        })
+        return length
+      }
 
       name(value) {
         return this.list.find(char => char.name === value)
@@ -60,10 +82,15 @@
     }
 
     class Character {
-      constructor(name, defData, color) {
+      constructor(name, defData, color, defVariations=[]) {
         this.name = name
         this.defData = defData
         this.color = color
+        this.defVariations = defVariations
+      }
+
+      get hasDefVariations() {
+        return Boolean(this.defVariations.length)
       }
     }
 
@@ -100,14 +127,23 @@
     }
 
     var characters = new Characters ([
-      new Character("Bedman?", new DefData(246, 0), "#a6425f"),
+      new Character("Bedman?", new DefData(246, 0), "#a6425f",
+        [
+          // 10% less damages during install
+          {name:"install", modifier: 0.90}
+        ]),
       new Character("Anji Mito", new DefData(272, 5), "#00aab6"),
       new Character("Axl Low", new DefData(276, 1), "#625e60"),
       new Character("Baiken", new DefData(286, 4), "#374f83"),
       new Character("Bridget", new DefData(272, 0), "#789bb7"),
       new Character("Chipp Zanuff", new DefData(324, 4), "#a49ea6"),
       new Character("Faust", new DefData(260, 0), "#27475b"),
-      new Character("Giovanna", new DefData(264, 1), "#02d39c"),
+      new Character("Giovanna", new DefData(264, 1), "#02d39c",
+        [
+          // 5% and 10% less damages at respectivelly 50+ and 100 tension
+          {name:"50% Tension", modifier: 0.95},
+          {name:"100% Tension", modifier: 0.90}
+        ]),
       new Character("Goldlewis Dickinson", new DefData(246, 3), "#c19a50"),
       new Character("Happy Chaos", new DefData(266, 1), "#5b7d90"),
       new Character("I-No", new DefData(272, 1), "#a54142"),
@@ -116,22 +152,44 @@
       new Character("Leo Whitefang", new DefData(256, 3), "#523d3c"),
       new Character("May", new DefData(272, 4), "#ed9a50"),
       new Character("Millia Rage", new DefData(304, 2), "#c66f35"),
-      new Character("Nagoriyuki", new DefData(248, 4), "#613050"),
+      new Character("Nagoriyuki", new DefData(248, 4), "#613050",
+        [
+          // takes 11% and 25% more damage at respectivelly Blood gage lvl2 ans lvl3
+          {name:"lvl2 Blood", modifier: 1.11},
+          {name:"lvl3 Blood", modifier: 1.25}
+        ]),
       new Character("Potemkin", new DefData(240, 3), "#626a4e"),
       new Character("Ramlethal Valentine", new DefData(272, 1), "#00815c"),
-      new Character("Sin Kiske", new DefData(270, 2), "#374f83"),
+      new Character("Sin Kiske", new DefData(270, 2), "#374f83",
+        [
+          // randomly takes 2%, 4%, 6%, 8% or 10% less damage after eating lobster
+          {name:"Lobster1", modifier: 0.98},
+          {name:"Lobster2", modifier: 0.96},
+          {name:"Lobster3", modifier: 0.94},
+          {name:"Lobster4", modifier: 0.92},
+          {name:"Lobster5", modifier: 0.90}
+        ]),
       new Character("Sol Badguy", new DefData(252, 2), "#a44f43"),
       new Character("Testament", new DefData(268, 1), "#4e4e47"),
       new Character("Zato-1", new DefData(276, 0), "#073842"),
     ])
 
     var guts = new Guts
+
     var modifiersTable = guts.liferanges.map(lr => {
-      return characters.names.map(name => {
-        let gCoef = guts.gutsCoef(characters.name(name).defData.guts, lr)
-        let modifier = 1 * gCoef * characters.name(name).defData.defcoef
-        return {name: name, modifier: modifier}
-      }).sort((a, b) => a.modifier - b.modifier)
+      let modifiersList = []
+      characters.names.forEach(name => {
+        let char = characters.name(name)
+        let gCoef = guts.gutsCoef(char.defData.guts, lr)
+        let modifier = 1 * gCoef * char.defData.defcoef
+        modifiersList.push({name: name, modifier: modifier})
+        if (char.hasDefVariations) {
+          char.defVariations.forEach( variation => {
+            modifiersList.push({name: name, modifier: modifier * variation.modifier, varName: variation.name})
+          })
+        }
+      })
+      return modifiersList.sort((a, b) => a.modifier - b.modifier)
     })
 
     createApp({
