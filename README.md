@@ -1,7 +1,7 @@
 # ggstcheatsheet
 
 ## Description
-One pages web app for ggst damages modifiers and combo dammage calculation
+One page web app for ggst damages modifiers and combo dammage calculation
 
 ## Usage
 Open the html file in your browser (you need internet connection to be able to retreive the dependencies)
